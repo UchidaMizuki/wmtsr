@@ -2,7 +2,9 @@
 
 S3method(collect,wmts)
 S3method(tbl_sum,wmts)
+S3method(tbl_sum,wmts_tiles)
 export(read_wmts)
+export(wmts_tiles)
 import(rlang)
 import(vctrs)
 importFrom(dplyr,collect)

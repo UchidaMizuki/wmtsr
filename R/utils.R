@@ -1,3 +1,13 @@
+big_mark <- function(x, ...) {
+  if (identical(getOption("OutDec"), ",")) {
+    mark <- "."
+  } else {
+    mark <- ","
+  }
+  formatC(x,
+          big.mark = mark, ...)
+}
+
 xml_find_text <- function(x, xpath) {
   out <- x |>
     xml2::xml_find_all(xpath) |>
