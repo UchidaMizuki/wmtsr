@@ -4,7 +4,3 @@
 #' @importFrom dplyr collect
 #' @importFrom pillar tbl_sum
 "_PACKAGE"
-
-## usethis namespace: start
-## usethis namespace: end
-NULL
