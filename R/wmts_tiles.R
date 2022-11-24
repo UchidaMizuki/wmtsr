@@ -53,6 +53,36 @@ wmts_tiles <- function(x, wmts,
 }
 
 #' @export
+write_wmts_tiles <- function(x, path,
+                             ext = c("tif", "png", "jpg", "gif")) {
+  ext <- arg_match(ext, c("tif", "png", "jpg", "gif"))
+
+  if (fs::path_ext(path) == "gif") {
+    x <- x |>
+      dplyr::rowwise() |>
+      dplyr::mutate(file = fs::file_temp(ext = "png"))
+
+    x |>
+      dplyr::group_walk(function(x, y) {
+        terra::writeRaster(x$tiles[[1L]], x$file,
+                           overwrite = TRUE)
+      })
+
+    out <- x$file |>
+      magick::image_read() |>
+      magick::image_animate(fps = 1,
+                            loop = 0) |>
+      magick::image_annotate(x$title,
+                             size = 20,
+                             boxcolor = "white")
+    magick::image_write(out, path)
+  } else {
+    # TODO
+  }
+  invisible()
+}
+
+#' @export
 tbl_sum.wmts_tiles <- function(x) {
   out <- NextMethod()
   names(out)[[1L]] <- "WMTS tiles"
