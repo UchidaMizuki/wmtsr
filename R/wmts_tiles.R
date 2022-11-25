@@ -53,8 +53,9 @@ wmts_tiles <- function(x, wmts,
 }
 
 #' @export
-write_wmts_tiles <- function(x, path,
+write_wmts_tiles <- function(x, path, ...,
                              ext = c("tif", "png", "jpg", "gif")) {
+  dots <- list2(...)
   ext <- arg_match(ext, c("tif", "png", "jpg", "gif"))
 
   if (fs::path_ext(path) == "gif") {
@@ -68,13 +69,15 @@ write_wmts_tiles <- function(x, path,
                            overwrite = TRUE)
       })
 
+    # TODO
+
     out <- x$file |>
       magick::image_read() |>
-      magick::image_animate(fps = 1,
-                            loop = 0) |>
       magick::image_annotate(x$title,
                              size = 20,
-                             boxcolor = "white")
+                             boxcolor = "white") |>
+      magick::image_animate(fps = 1,
+                            loop = 0)
     magick::image_write(out, path)
   } else {
     # TODO
