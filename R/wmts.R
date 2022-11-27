@@ -26,11 +26,21 @@ tbl_sum.wmts <- function(x) {
 #' @export
 collect.wmts <- function(x, ...) {
   wmts <- xml_clone(attr(x, "wmts"))
+
+  # Update layers
   layer <- wmts |>
     xml2::xml_find_all("d1:Contents/d1:Layer")
   layer[x$layer_id] |>
     xml2::xml_set_text(x$title)
   xml2::xml_remove(layer[vec_as_location(-x$layer_id, length(layer))])
+
+  # Update Tile Matrices
+  tile_matrix_set_id <- attr(x, "tile_matrix_set") |>
+    dplyr::filter(.data$identifier %in% x$tile_matrix_set) |>
+    dplyr::pull("tile_matrix_set_id")
+  tile_matrix_set <- wmts |>
+    xml2::xml_find_all("d1:Contents/d1:TileMatrixSet")
+  xml2::xml_remove(tile_matrix_set[vec_as_location(-tile_matrix_set_id, length(tile_matrix_set))])
 
   wmts
 }
@@ -117,7 +127,6 @@ read_tile_matrix_set <- function(wmts) {
                    xml_find_text("ows:SupportedCRS")) |>
     dplyr::left_join(time_matrix,
                      by = "tile_matrix_set_id") |>
-    dplyr::select(!"tile_matrix_set_id") |>
 
     # Add `zoom_min`, `zoom_max`
     dplyr::rowwise() |>
