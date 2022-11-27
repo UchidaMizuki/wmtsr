@@ -39,7 +39,7 @@ wmts_tiles <- function(x, wmts,
       out <- bbox |>
         get_wmts_tiles(resource_url = resource_url,
                        zoom = zoom)
-      pb$tic
+      pb$tick()
       out
     })) |>
     dplyr::ungroup() |>
@@ -53,12 +53,21 @@ wmts_tiles <- function(x, wmts,
 }
 
 #' @export
-write_wmts_tiles <- function(x, path, ...,
-                             ext = c("tif", "png", "jpg", "gif")) {
-  dots <- list2(...)
+write_wmts_tiles <- function(x, path,
+                             ext = c("tif", "png", "jpg", "gif"),
+                             file_name = x$title,
+                             text = x$title,
+                             size = 20,
+                             boxcolor = "white",
+                             fps = 1, ...) {
+  args <- list2(...)
   ext <- arg_match(ext, c("tif", "png", "jpg", "gif"))
 
-  if (fs::path_ext(path) == "gif") {
+  if (ext == "gif" || fs::path_ext(path) == "gif") {
+    if (fs::path_ext(path) != "gif") {
+      abort('`path` extension must be "gif".')
+    }
+
     x <- x |>
       dplyr::rowwise() |>
       dplyr::mutate(file = fs::file_temp(ext = "png"))
@@ -69,18 +78,34 @@ write_wmts_tiles <- function(x, path, ...,
                            overwrite = TRUE)
       })
 
-    # TODO
+    args_annotate <- purrr::compact(args[fn_fmls_names(magick::image_annotate)])
+    args_animate <- purrr::compact(args[fn_fmls_names(magick::image_animate)])
+    args_write <- purrr::compact(args[fn_fmls_names(magick::image_write)])
 
-    out <- x$file |>
+    x$file |>
       magick::image_read() |>
-      magick::image_annotate(x$title,
-                             size = 20,
-                             boxcolor = "white") |>
-      magick::image_animate(fps = 1,
-                            loop = 0)
-    magick::image_write(out, path)
+      purrr::partial(magick::image_annotate,
+                     text = text,
+                     size = size,
+                     boxcolor = boxcolor,
+                     !!!args_annotate)() |>
+      purrr::partial(magick::image_animate,
+                     fps = fps,
+                     !!!args_animate)() |>
+      magick::image_write(path)
   } else {
-    # TODO
+    fs::dir_create(path)
+
+    x |>
+      tibble::add_column(file_name = file_name) |>
+      dplyr::rowwise() |>
+      dplyr::group_walk(function(x, y) {
+        file <- fs::path(path, x$file_name,
+                         ext = ext)
+
+        terra::writeRaster(x$tiles[[1L]], file,
+                           overwrite = TRUE, ...)
+      })
   }
   invisible()
 }
@@ -127,7 +152,7 @@ query_wmts_tiles <- function(bbox) {
 
 get_wmts_tiles <- function(bbox, resource_url, zoom) {
   resource_url <- resource_url |>
-    dplyr::filter(stringr::str_detect(.data$format, "^image"))
+    dplyr::filter(.data$format %in% c("image/png", "image/jpeg", "png", "jpeg"))
 
   if (vec_is_empty(resource_url)) {
     out <- NULL

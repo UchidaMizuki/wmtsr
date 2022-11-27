@@ -13,6 +13,7 @@ Imports:
     magick,
     maptiles,
     progress,
+    purrr,
     rlang,
     tibble,
     urltools,
