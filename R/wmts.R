@@ -1,3 +1,5 @@
+#' Read WMTS
+#'
 #' @export
 read_wmts <- function(x, ...) {
   wmts <- xml2::read_xml(x, ...)
