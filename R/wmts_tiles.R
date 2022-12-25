@@ -111,17 +111,21 @@ write_wmts_tiles <- function(x, path,
 
     magick::image_write(x, path)
   } else {
-    fs::dir_create(path)
+    fs::dir_create(path,
+                   recurse = FALSE)
 
     x |>
       tibble::add_column(file_name = file_name) |>
       dplyr::rowwise() |>
       dplyr::group_walk(function(x, y) {
-        file <- fs::path(path, x$file_name,
-                         ext = ext)
+        tiles <- x$tiles[[1L]]
+        if (!is.null(tiles)) {
+          file <- fs::path(path, x$file_name,
+                           ext = ext)
 
-        terra::writeRaster(x$tiles[[1L]], file,
-                           overwrite = TRUE, ...)
+          terra::writeRaster(tiles, file,
+                             overwrite = TRUE, ...)
+        }
       })
   }
   invisible()
@@ -181,11 +185,12 @@ get_wmts_tiles <- function(bbox, resource_url, zoom) {
                      q = resource_url$template,
                      sub = resource_url$subdomain[[1L]],
                      cit = "")
-    out <- purrr::safely(maptiles::get_tiles)(bbox,
-                                              provider = provider,
-                                              zoom = zoom,
-                                              crop = TRUE,
-                                              cachedir = fs::file_temp()) |>
+    out <- purrr::quietly(purrr::safely(maptiles::get_tiles))(bbox,
+                                                              provider = provider,
+                                                              zoom = zoom,
+                                                              crop = TRUE,
+                                                              cachedir = fs::file_temp()) |>
+      purrr::chuck("result") |>
       purrr::chuck("result")
     Sys.sleep(1)
   }
